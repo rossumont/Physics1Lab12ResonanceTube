@@ -1,0 +1,730 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Resonance Tube Lab</title>
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0B1A2B; --grid:rgba(160,190,230,.06); --card:#10233a; --card2:#152c47; --line:#24405f;
+  --text:#F3EEE2; --muted:#9db0c6; --green:#7FD4A8; --amber:#E8B23A; --bad:#ef6f6f;
+  --mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;overflow-x:hidden;background:var(--bg);color:var(--text);
+  font-family:"Sarabun",system-ui,-apple-system,"Segoe UI",sans-serif;font-size:15px}
+body{background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);background-size:24px 24px}
+.app{display:grid;grid-template-rows:auto 1fr auto;height:100vh;height:100dvh}
+header{display:flex;align-items:center;flex-wrap:wrap;gap:8px 10px;padding:8px 14px;border-bottom:1px solid var(--line)}
+header h1{font-size:19px;margin:0;font-weight:700;line-height:1.2}
+header .sub{font-size:12.5px;color:var(--muted)}
+header .sp{flex:1}
+.badge{font-size:12px;padding:3px 8px;border-radius:20px;color:var(--amber);border:1px solid var(--amber);display:none}
+button{font-family:inherit;font-size:14px;color:var(--text);background:var(--card2);border:1px solid var(--line);
+  border-radius:9px;padding:7px 12px;cursor:pointer;touch-action:manipulation;-webkit-user-select:none;user-select:none}
+button.ghost{background:transparent;border-color:var(--muted)}
+button.go{background:#173d30;border-color:var(--green);color:var(--green)}
+main.part{display:none;grid-template-columns:minmax(0,1fr) 330px;gap:10px;padding:10px;min-height:0}
+main.part.show{display:grid}
+.card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:10px}
+.stage{display:flex;flex-direction:column;gap:8px;min-height:0;min-width:0}
+.view{flex:1;min-height:260px;padding:0;overflow:hidden;position:relative}
+.view canvas,.magwrap canvas{display:block;width:100%;height:100%}
+.magwrap{height:130px;padding:0;position:relative;overflow:hidden;flex:none}
+.maglabel{position:absolute;right:12px;bottom:6px;max-width:40%;text-align:right;font-size:11.5px;line-height:1.3;color:var(--muted);pointer-events:none}
+.chips{display:flex;gap:6px;flex-wrap:nowrap;overflow-x:auto;align-items:center}
+.chip{font-family:var(--mono);font-size:14px;padding:7px 14px;border-radius:20px;background:var(--card2);border:1.5px solid var(--line);white-space:nowrap}
+.chip.on{border-color:var(--green);color:var(--green);background:#12301f}
+.chip.step.on,.chip.amber.on{border-color:var(--amber);color:var(--amber);background:#33270c}
+.ctrl{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.lcd{flex:0 1 auto;font-family:var(--mono);font-size:24px;font-weight:600;color:var(--green);background:#06121f;border:1px solid var(--line);
+  border-radius:8px;padding:4px 12px;min-width:150px;text-align:right;letter-spacing:1px}
+.lcd small{font-size:14px;color:var(--muted);margin-left:4px}
+.tag{font-family:var(--mono);font-size:14px;color:var(--muted)}
+.tag b{color:var(--text);font-weight:600}
+.arrow{font-size:18px;padding:6px 16px;font-family:var(--mono)}
+.vol{display:flex;align-items:center;gap:6px;flex:1 1 160px;min-width:0}
+.vol input{flex:1;min-width:0;accent-color:var(--green)}
+.mono{font-family:var(--mono)}
+.side{display:flex;flex-direction:column;gap:8px;overflow:auto;min-height:0;min-width:0}
+h2{font-size:14px;margin:0 0 8px;color:var(--amber)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th,td{border:1px solid var(--line);padding:3px;text-align:center}
+th{background:var(--card2);color:var(--muted);font-weight:600;font-family:var(--mono);font-size:12px}
+td.p{font-family:var(--mono);color:var(--green);font-weight:600}
+td.avg{font-family:var(--mono);color:var(--amber);font-weight:600}
+td input,.inp{width:100%;font-family:var(--mono);font-size:13px;color:var(--text);background:#06121f;border:1px solid var(--line);border-radius:6px;padding:5px 2px;text-align:center}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:6px 10px}
+label.l{font-size:12px;color:var(--muted);display:block;margin:6px 0 2px}
+.row{display:flex;gap:6px;margin-top:8px}
+.row button{flex:1}
+details summary{cursor:pointer;color:var(--amber);font-weight:600;font-size:14px}
+details ol{padding-left:20px;margin:6px 0;font-size:13px;line-height:1.5}
+.f{font-family:var(--mono);font-size:12.5px;background:#06121f;border-radius:8px;padding:6px 8px;line-height:1.7}
+footer{font-size:12px;color:var(--muted);text-align:center;padding:6px 10px 8px;border-top:1px solid var(--line);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+/* floating water panel (part 1) */
+#waterPanel{position:fixed;left:0;top:0;width:150px;background:rgba(16,35,58,.96);border:1px solid var(--green);border-radius:10px;padding:5px 6px 6px;z-index:40;box-shadow:0 8px 24px rgba(0,0,0,.5);visibility:hidden}
+.wpHead{display:flex;align-items:center;gap:4px;font-size:11.5px;font-weight:600;color:var(--green);cursor:move;touch-action:none;-webkit-user-select:none;user-select:none;margin-bottom:5px}
+.wpHead span:nth-child(2){flex:1;line-height:1.25}
+.wpHead .grip{font-size:14px;color:var(--muted)}
+.wpHead button{padding:1px 7px;font-size:13px;line-height:1;border-radius:6px}
+#waterPanel.mini #wpBody{display:none}
+#waterPanel.mini .wpHead{margin-bottom:0}
+.waterbtns{display:grid;grid-template-columns:1fr 1fr;gap:4px}
+.waterbtns button{padding:6px 2px;font-size:11.5px;border-radius:7px;font-family:var(--mono)}
+#slider{width:100%;accent-color:var(--green);margin-top:6px;display:block}
+/* modal */
+.modal{position:fixed;inset:0;background:rgba(0,0,0,.65);display:none;align-items:center;justify-content:center;z-index:50;padding:12px}
+.modal.show{display:flex}
+.box{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;width:min(620px,100%);max-height:92vh;overflow:auto}
+.box input[type=number],.box input[type=text],.box input[type=password],.box input[type=email],.box select{font-family:var(--mono);font-size:14px;color:var(--text);background:#06121f;border:1px solid var(--line);border-radius:7px;padding:6px 8px;width:100%}
+.box h3{font-size:14px;color:var(--green);margin:14px 0 2px;border-top:1px solid var(--line);padding-top:10px}
+.g5{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+.chk{display:flex;gap:8px;align-items:center;font-size:14px;margin:4px 0}
+.chk input{width:18px;height:18px;accent-color:var(--green)}
+.key{font-family:var(--mono);font-size:13px;line-height:1.6}
+.msg{font-size:13px;margin-top:6px}
+.linkbox{word-break:break-all;font-family:var(--mono);font-size:11.5px;background:#06121f;border-radius:8px;padding:8px;margin-top:6px;display:none}
+.toast{position:fixed;bottom:40px;left:50%;transform:translateX(-50%);background:#12301f;border:1px solid var(--green);color:var(--green);padding:7px 14px;border-radius:10px;display:none;z-index:60}
+@media (max-width:920px), (orientation:portrait){
+  .app{height:auto;min-height:100dvh}
+  main.part{grid-template-columns:minmax(0,1fr)}
+  .card{min-width:0}
+  .view{height:54vh;flex:none}
+  .side{overflow:visible}
+  footer{white-space:normal}
+}
+</style>
+</head>
+<body>
+<div class="app">
+<header>
+  <div><h1 data-i18n="title"></h1><div class="sub" id="sub"></div></div>
+  <div class="chips" id="partChips"></div>
+  <span class="badge" id="lockBadge" data-i18n="locked"></span>
+  <div class="sp"></div>
+  <button class="ghost mono" id="btnLang">ไทย</button>
+  <button class="ghost" id="btnTeacher">🔒 <span data-i18n="teacher"></span></button>
+</header>
+
+<!-- ================= PART 1 : closed tube + tuning fork ================= -->
+<main class="part" id="part1">
+  <section class="stage">
+    <div class="card view" id="view1"><canvas id="cv1"></canvas></div>
+    <div class="card magwrap" id="magWrap"><canvas id="mag"></canvas><div class="maglabel" data-i18n="magnifier"></div></div>
+    <div class="ctrl">
+      <button class="go" id="btnStrike">🔔 <span data-i18n="strike"></span></button>
+      <button class="chip amber" id="btnCont"></button>
+      <span class="tag"><span data-i18n="fork"></span> <b id="fLabel"></b></span>
+      <span class="tag">T <b id="tLabel1"></b></span>
+      <div class="vol"><span>🔈</span><input type="range" class="volS" min="0" max="1" step="0.01" value="0.6"><span class="mono volP">60%</span></div>
+    </div>
+  </section>
+  <section class="side">
+    <div class="card">
+      <h2 data-i18n="data"></h2>
+      <table>
+        <thead><tr><th></th><th data-i18n="trial1"></th><th data-i18n="trial2"></th><th data-i18n="avg"></th></tr></thead>
+        <tbody id="tbody1"></tbody>
+      </table>
+      <div class="g2" style="margin-top:6px">
+        <div><label class="l mono">λ (cm)</label><input class="inp" type="number" step="any" id="a1Lam"></div>
+        <div><label class="l mono">v (m/s)</label><input class="inp" type="number" step="any" id="a1V"></div>
+        <div><label class="l mono">e (cm)</label><input class="inp" type="number" step="any" id="a1E"></div>
+        <div><label class="l mono">% diff</label><input class="inp" type="number" step="any" id="a1Err"></div>
+      </div>
+      <div class="row"><button id="btnCSV1">⬇ CSV</button><button id="btnClear1" data-i18n="clear"></button></div>
+    </div>
+    <div class="card">
+      <details>
+        <summary data-i18n="how"></summary>
+        <ol id="steps1"></ol>
+        <div class="f">L₁ + e = λ/4<br>L₂ + e = 3λ/4<br>λ = 2(L₂ − L₁)<br>v = fλ<br>e = (L₂ − 3L₁)/2<br>v ≈ 331.3·√(1 + T/273.15)</div>
+      </details>
+    </div>
+  </section>
+</main>
+
+<!-- ================= PART 2 : open pipes + frequency ================= -->
+<main class="part" id="part2">
+  <section class="stage">
+    <div class="card view" id="view2"><canvas id="cv2"></canvas></div>
+    <div class="chips" id="pipeChips"></div>
+    <div class="ctrl">
+      <button class="go" id="btnSound"></button>
+      <button class="arrow" data-dir="-1">◀</button>
+      <div class="lcd" id="lcd">0200.0<small>Hz</small></div>
+      <button class="arrow" data-dir="1">▶</button>
+      <div class="chips" id="stepChips"></div>
+      <span class="tag">T <b id="tLabel2"></b></span>
+      <div class="vol"><span>🔈</span><input type="range" class="volS" min="0" max="1" step="0.01" value="0.6"><span class="mono volP">60%</span></div>
+    </div>
+  </section>
+  <section class="side">
+    <div class="card">
+      <h2 data-i18n="data"></h2>
+      <table>
+        <thead><tr><th></th><th>L (cm)</th><th>f₁ (Hz)</th><th>f₂ (Hz)</th><th>v (m/s)</th></tr></thead>
+        <tbody id="tbody2"></tbody>
+      </table>
+      <div class="row"><button id="btnCSV2">⬇ CSV</button><button id="btnClear2" data-i18n="clear"></button></div>
+    </div>
+    <div class="card">
+      <details>
+        <summary data-i18n="how"></summary>
+        <ol id="steps2"></ol>
+        <div class="f">L<sub>eff</sub> = L + 2e<br>f<sub>n</sub> = n·v / 2L<sub>eff</sub><br>v = 2L<sub>eff</sub>(f₂ − f₁)<br>f₁ vs 1/L → slope ≈ v/2</div>
+      </details>
+    </div>
+  </section>
+</main>
+
+<footer id="credit"></footer>
+</div>
+
+<!-- floating water-level panel (part 1 only) -->
+<div id="waterPanel">
+  <div class="wpHead" id="wpHead"><span class="grip">⠿</span><span data-i18n="water"></span><button id="wpMin">–</button></div>
+  <div id="wpBody">
+    <div class="waterbtns">
+      <button data-step="-1">▲▲ 1 cm</button>
+      <button data-step="-0.1">▲ 1 mm</button>
+      <button data-step="1">▼▼ 1 cm</button>
+      <button data-step="0.1">▼ 1 mm</button>
+    </div>
+    <input type="range" id="slider" min="2" max="95" step="0.05" value="5">
+  </div>
+</div>
+
+<!-- teacher modal -->
+<div class="modal" id="modal"><div class="box">
+  <div style="display:flex;justify-content:space-between;align-items:center">
+    <h2 style="margin:0" data-i18n="tPanel"></h2><button id="btnClose">✕</button>
+  </div>
+  <div id="pwStage" style="margin-top:10px">
+    <input type="password" id="pw" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
+    <div class="row"><button class="go" id="btnLogin" data-i18n="enter"></button></div>
+    <div class="msg" id="pwMsg" style="color:var(--bad)"></div>
+  </div>
+  <div id="tStage" style="display:none">
+    <label class="l" data-i18n="tParts"></label>
+    <div class="chips" id="sParts"></div>
+    <div class="g2">
+      <div><label class="l" data-i18n="tTemp"></label><input type="number" id="sTemp" step="0.1"></div>
+    </div>
+
+    <h3 data-i18n="p1name"></h3>
+    <div class="g2">
+      <div><label class="l" data-i18n="tFork"></label>
+        <select id="s1Fork">
+          <option>256</option><option>288</option><option>320</option><option>341.3</option>
+          <option>384</option><option>426.7</option><option>480</option><option selected>512</option>
+          <option value="custom" data-i18n="custom"></option>
+        </select></div>
+      <div><label class="l" data-i18n="tCustom"></label><input type="number" id="s1Custom" step="any" placeholder="440"></div>
+      <div><label class="l" data-i18n="tLen"></label><input type="number" id="s1Len" step="1"></div>
+      <div><label class="l" data-i18n="tRad"></label><input type="number" id="s1Rad" step="0.05"></div>
+    </div>
+    <label class="chk"><input type="checkbox" id="s1ShowF"><span data-i18n="tShowF"></span></label>
+    <label class="chk"><input type="checkbox" id="s1Meter"><span data-i18n="tMeter"></span></label>
+    <label class="chk"><input type="checkbox" id="s1Wave"><span data-i18n="tWave"></span></label>
+    <label class="chk"><input type="checkbox" id="s1Noise"><span data-i18n="tNoise"></span></label>
+
+    <h3 data-i18n="p2name"></h3>
+    <label class="l" data-i18n="tLens"></label>
+    <div class="g5" id="lenInputs"></div>
+    <div class="g2"><div><label class="l" data-i18n="tRad"></label><input type="number" id="s2Rad" step="0.1"></div></div>
+    <label class="chk"><input type="checkbox" id="s2Meter"><span data-i18n="tMeter"></span></label>
+    <label class="chk"><input type="checkbox" id="s2Wave"><span data-i18n="tWave"></span></label>
+    <label class="chk"><input type="checkbox" id="s2Noise"><span data-i18n="tNoise"></span></label>
+
+    <div class="row" style="margin-top:12px"><button class="go" id="btnApply" data-i18n="apply"></button><button id="btnLink">🔗 <span data-i18n="link"></span></button></div>
+    <div class="linkbox" id="linkBox"></div>
+    <div class="msg" id="linkMsg"></div>
+
+    <h3 data-i18n="key"></h3>
+    <div class="key" id="keyBox"></div>
+
+    <details style="margin-top:12px">
+      <summary data-i18n="chPw"></summary>
+      <label class="l">Email</label><input type="email" id="adEmail" autocomplete="off" autocapitalize="off">
+      <label class="l" data-i18n="adPw"></label><input type="password" id="adPw" autocomplete="off">
+      <label class="l" data-i18n="newPw"></label><input type="text" id="newPw" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false">
+      <div class="row"><button id="btnChPw" data-i18n="save"></button><button id="btnResetPw" data-i18n="resetPw"></button></div>
+      <div class="msg" id="chMsg"></div>
+    </details>
+  </div>
+</div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+(function(){
+"use strict";
+const $=id=>document.getElementById(id);
+const PIPES=["A","B","C","D","E"];
+const MONO='"JetBrains Mono",ui-monospace,Menlo,monospace';
+
+/* ================= text ================= */
+const TX={
+ en:{title:"Resonance Tube Lab",locked:"Locked",teacher:"Teacher",
+  part1:"1 · Tuning fork",part2:"2 · Frequency",
+  sub1:"Closed at one end · change the water level",sub2:"Open at both ends · 5 pipes · change the frequency",
+  magnifier:"Read L at the bottom of the water surface",strike:"Strike",contOn:"Continuous ■",contOff:"Continuous ▶",fork:"Fork",
+  water:"Water level",data:"Data",trial1:"Trial 1",trial2:"Trial 2",avg:"Avg",clear:"Clear",clearAsk:"Clear all data?",how:"How to",
+  steps1:["Raise the water near the top.","Strike the fork (or Continuous).","Lower the water slowly. Loudest = resonance.","Fine-tune with 1 mm, read L in the magnifier.","Record L₁, L₂, L₃ (2 trials). Find λ, v, e."],
+  steps2:["Pick a pipe. Measure L with the ruler.","Sound on. Change frequency with ◀ ▶ (pick step).","Loudest = resonance. Record f₁ and the next, f₂.","Repeat for all 5 pipes. Find v and e."],
+  soundOn:"Sound on",soundOff:"Sound off",
+  tPanel:"Teacher",enter:"Enter",wrong:"Wrong password",tParts:"Parts for students",both:"1 + 2",tTemp:"Room temp. (°C)",
+  p1name:"Part 1 · Tuning fork",p2name:"Part 2 · Frequency",tFork:"Fork frequency (Hz)",custom:"Custom…",tCustom:"Custom (Hz)",
+  tLen:"Tube length (cm)",tRad:"Inner radius r (cm)",tShowF:"Show fork frequency",tLens:"Pipe lengths (cm)",
+  tMeter:"Show sound meter",tWave:"Show standing wave",tNoise:"Add experimental error",apply:"Apply",link:"Student link",
+  linkOk:"Copied. Send this link to students.",linkWarn:"⚠ Not on a real web address. Upload to GitHub Pages first.",
+  key:"Answer key",applied:"Applied",chPw:"Change password",adPw:"Admin password",newPw:"New teacher password",save:"Save",
+  resetPw:"Reset to default",bad:"Email or admin password is wrong",saved:"Saved (this device only)",reset:"Reset to default (this device)",
+  now:"now",beyond:"—",
+  credit:"Asst.Prof.Dr. Rossumont Jaryabhand · Rajamangala University of Technology Tawan-ok, Uthenthawai Campus · No Right Reserved"},
+ th:{title:"แลปเรโซแนนซ์ของเสียงในท่อ",locked:"ล็อกค่า",teacher:"ครู",
+  part1:"1 · ส้อมเสียง",part2:"2 · ปรับความถี่",
+  sub1:"ปลายปิดหนึ่งข้าง · ปรับระดับน้ำ",sub2:"ปลายเปิดสองข้าง · ท่อ 5 ขนาด · ปรับความถี่",
+  magnifier:"อ่านค่า L ที่ก้นผิวน้ำโค้ง",strike:"เคาะ",contOn:"ต่อเนื่อง ■",contOff:"ต่อเนื่อง ▶",fork:"ส้อมเสียง",
+  water:"ระดับน้ำ",data:"บันทึกผล",trial1:"ครั้งที่ 1",trial2:"ครั้งที่ 2",avg:"เฉลี่ย",clear:"ล้าง",clearAsk:"ล้างข้อมูลทั้งหมด?",how:"วิธีทดลอง",
+  steps1:["ยกน้ำให้ใกล้ปากท่อ","เคาะส้อมเสียง (หรือกดต่อเนื่อง)","ค่อยๆ ลดน้ำ เสียงดังสุด = เรโซแนนซ์","ปรับละเอียดทีละ 1 mm อ่าน L จากแว่นขยาย","บันทึก L₁ L₂ L₃ (2 ครั้ง) หา λ, v, e"],
+  steps2:["เลือกท่อ วัดความยาว L ด้วยไม้บรรทัด","เปิดเสียง ปรับความถี่ด้วย ◀ ▶ (เลือกขนาดขั้น)","เสียงดังสุด = เรโซแนนซ์ บันทึก f₁ และค่าถัดไป f₂","ทำให้ครบ 5 ท่อ แล้วหา v และ e"],
+  soundOn:"เปิดเสียง",soundOff:"ปิดเสียง",
+  tPanel:"ครู",enter:"เข้าสู่ระบบ",wrong:"รหัสผ่านไม่ถูกต้อง",tParts:"ตอนที่ให้นักเรียนทำ",both:"1 + 2",tTemp:"อุณหภูมิห้อง (°C)",
+  p1name:"ตอนที่ 1 · ส้อมเสียง",p2name:"ตอนที่ 2 · ปรับความถี่",tFork:"ความถี่ส้อมเสียง (Hz)",custom:"กำหนดเอง…",tCustom:"กำหนดเอง (Hz)",
+  tLen:"ความยาวท่อ (cm)",tRad:"รัศมีภายใน r (cm)",tShowF:"แสดงความถี่ส้อมเสียง",tLens:"ความยาวท่อ (cm)",
+  tMeter:"แสดงมาตรวัดเสียง",tWave:"แสดงภาพคลื่นนิ่ง",tNoise:"เพิ่มความคลาดเคลื่อน",apply:"ใช้ค่า",link:"ลิงก์นักเรียน",
+  linkOk:"คัดลอกแล้ว ส่งลิงก์นี้ให้นักเรียน",linkWarn:"⚠ ยังไม่ได้อยู่บนเว็บจริง อัปขึ้น GitHub Pages ก่อน",
+  key:"เฉลย",applied:"ใช้ค่าแล้ว",chPw:"เปลี่ยนรหัสผ่าน",adPw:"รหัสผ่านผู้ดูแล",newPw:"รหัสครูใหม่",save:"บันทึก",
+  resetPw:"กลับเป็นค่าเดิม",bad:"อีเมลหรือรหัสผู้ดูแลไม่ถูกต้อง",saved:"บันทึกแล้ว (เฉพาะเครื่องนี้)",reset:"กลับเป็นรหัสเดิมแล้ว (เครื่องนี้)",
+  now:"ตอนนี้",beyond:"—",
+  credit:"ผศ.ดร.รสสุมนต์ จารยะพันธุ์ · มหาวิทยาลัยเทคโนโลยีราชมงคลตะวันออก อุเทนถวาย · ไม่สงวนลิขสิทธิ์"}
+};
+let lang="en"; const t=k=>TX[lang][k];
+
+/* ================= settings ================= */
+const DEF={T:25, parts:0,
+  p1:{f:512,len:100,r:1.75,showF:true,meter:true,wave:true,noise:false,ne:0},
+  p2:{lens:[20,30,40,50,60],r:1.5,meter:true,wave:true,noise:false,ne:[0,0,0,0,0]}};
+const clone=o=>JSON.parse(JSON.stringify(o));
+let S=clone(DEF);
+let part=1, teacherIn=false, volume=0.6;
+const ph=[Math.random()*6,Math.random()*6,Math.random()*6];
+const vSound=()=>331.3*Math.sqrt(1+S.T/273.15);   // m/s
+
+/* ---- part 1 physics (closed at one end) ---- */
+const lam1=()=>vSound()/S.p1.f*100;                         // cm
+const e1=()=>0.6*S.p1.r+(S.p1.noise?S.p1.ne:0);             // cm
+function res1(L){
+  const q=lam1()/4, e=e1(); let R=0.05;
+  for(let n=1;n<=8;n++){ const Ln=(2*n-1)*q-e, w=0.55+0.25*(n-1), h=1/(1+0.35*(n-1)), x=(L-Ln)/w; R+=h/(1+x*x); }
+  return Math.min(R,1.05);
+}
+/* ---- part 2 physics (open at both ends) ---- */
+const e2=i=>0.6*S.p2.r+(S.p2.noise?S.p2.ne[i]:0);
+const Leff=i=>S.p2.lens[i]+2*e2(i);
+const fn=(i,n)=>n*vSound()*100/(2*Leff(i));
+function res2(i,F){
+  let R=0.03;
+  for(let n=1;n<=12;n++){ const c=fn(i,n), w=c/80, h=1/(1+0.18*(n-1)), x=(F-c)/w; R+=h/(1+x*x); }
+  return Math.min(R,1.05);
+}
+
+/* ================= SHA-256 (passwords stored as hashes only) ================= */
+function sha256(str){
+  const m=new TextEncoder().encode(str), l=m.length, K=[], H=[];
+  const isP=x=>{for(let i=2;i*i<=x;i++) if(x%i===0) return false; return true;};
+  const frac=x=>((x-Math.floor(x))*4294967296)|0;
+  for(let n=2,c=0;c<64;n++){ if(isP(n)){ if(c<8) H[c]=frac(Math.pow(n,1/2)); K[c]=frac(Math.pow(n,1/3)); c++; } }
+  const nw=(((l+8)>>6)+1)*16, w=new Array(nw).fill(0);
+  for(let i=0;i<l;i++) w[i>>2]|=m[i]<<(24-(i%4)*8);
+  w[l>>2]|=0x80<<(24-(l%4)*8); w[nw-1]=l*8;
+  const ror=(x,n)=>(x>>>n)|(x<<(32-n));
+  for(let j=0;j<nw;j+=16){
+    const W=w.slice(j,j+16); let [a,b,c,d,e,f2,g,h]=H;
+    for(let i=0;i<64;i++){
+      if(i>=16){ const x=W[i-15], y=W[i-2]; W[i]=(W[i-16]+(ror(x,7)^ror(x,18)^(x>>>3))+W[i-7]+(ror(y,17)^ror(y,19)^(y>>>10)))|0; }
+      const t1=(h+(ror(e,6)^ror(e,11)^ror(e,25))+((e&f2)^(~e&g))+K[i]+W[i])|0;
+      const t2=((ror(a,2)^ror(a,13)^ror(a,22))+((a&b)^(a&c)^(b&c)))|0;
+      h=g; g=f2; f2=e; e=(d+t1)|0; d=c; c=b; b=a; a=(t1+t2)|0;
+    }
+    [a,b,c,d,e,f2,g,h].forEach((x,k)=>H[k]=(H[k]+x)|0);
+  }
+  return H.map(x=>(x>>>0).toString(16).padStart(8,"0")).join("");
+}
+const PW_DEFAULT="8db889767c2c37605279743265bbe7e417a602cf63627e30551165e1f9f68e2e";
+const ADMIN="74f89be178af41f05b80025a7731d6acea563feaf7e7f545bac3b7ee39ef80a4";
+const PW_KEY="labTeacherPwHash";
+const norm=s=>s.replace(/[‘’‚‛`´]/g,"'").replace(/\s+/g,"");
+function pwHash(){ try{ return localStorage.getItem(PW_KEY)||PW_DEFAULT; }catch(e){ return PW_DEFAULT; } }
+
+/* ================= link token ================= */
+const KEY="ResoTube#2026";
+const xs=(s,k)=>{let o="";for(let i=0;i<s.length;i++)o+=String.fromCharCode(s.charCodeAt(i)^k.charCodeAt(i%k.length));return o;};
+const b64u=s=>btoa(s).replace(/\+/g,"-").replace(/\//g,"_").replace(/=+$/,"");
+const ub64u=s=>{s=s.replace(/-/g,"+").replace(/_/g,"/");while(s.length%4)s+="=";return atob(s);};
+const enc=o=>{const salt=Math.random().toString(36).slice(2,8);return salt+"."+b64u(xs(JSON.stringify(o),KEY+salt));};
+const dec=tok=>{try{const[s,b]=tok.split(".");return JSON.parse(xs(ub64u(b),KEY+s));}catch(e){return null;}};
+
+/* ================= audio (one oscillator shared by both parts) ================= */
+let ac=null,osc=null,gain=null;
+function audio(){
+  if(!ac){ const AC=window.AudioContext||window.webkitAudioContext; if(!AC) return;
+    ac=new AC(); gain=ac.createGain(); gain.gain.value=0; gain.connect(ac.destination);
+    osc=ac.createOscillator(); osc.type="sine"; osc.frequency.value=curFreq(); osc.connect(gain); osc.start(); }
+  if(ac.state==="suspended") ac.resume();
+}
+const curFreq=()=>part===1?S.p1.f:f2;
+function syncOsc(){ if(osc) osc.frequency.setTargetAtTime(curFreq(),ac.currentTime,0.01); }
+document.querySelectorAll(".volS").forEach(s=>s.addEventListener("input",()=>{
+  volume=+s.value; document.querySelectorAll(".volS").forEach(o=>o.value=volume);
+  document.querySelectorAll(".volP").forEach(p=>p.textContent=Math.round(volume*100)+"%"); }));
+
+/* ================= part switching ================= */
+function buildPartChips(){
+  const allowed=S.parts===0?[1,2]:[S.parts];
+  $("partChips").innerHTML=allowed.map(p=>`<button class="chip${p===part?" on":""}" data-p="${p}">${t("part"+p)}</button>`).join("");
+  $("partChips").querySelectorAll(".chip").forEach(b=>b.onclick=()=>setPart(+b.dataset.p));
+}
+function setPart(p){
+  if(S.parts!==0) p=S.parts;
+  part=p; cont=false; on=false; strikeAt=-1e9; updateContBtn(); soundBtn(); syncOsc();
+  $("part1").classList.toggle("show",p===1); $("part2").classList.toggle("show",p===2);
+  $("sub").textContent=t("sub"+p);
+  wp.style.display=p===1?"":"none";
+  buildPartChips();
+  requestAnimationFrame(()=>{ resizeAll(); if(p===1 && !wpPlaced) defaultPanelPos(); });
+}
+
+/* ================= canvases ================= */
+const cv1=$("cv1"),c1=cv1.getContext("2d"),mag=$("mag"),mc=mag.getContext("2d"),cv2=$("cv2"),c2=cv2.getContext("2d");
+let W1=0,H1=0,MW=0,MH=0,W2=0,H2=0;
+function fit(cv,ctx,box){ const dpr=window.devicePixelRatio||1, r=box.getBoundingClientRect();
+  cv.width=Math.max(1,r.width*dpr); cv.height=Math.max(1,r.height*dpr); ctx.setTransform(dpr,0,0,dpr,0,0); return [r.width,r.height]; }
+function resizeAll(){ [W1,H1]=fit(cv1,c1,$("view1")); [MW,MH]=fit(mag,mc,$("magWrap")); [W2,H2]=fit(cv2,c2,$("view2")); }
+const ro=new ResizeObserver(resizeAll); ["view1","magWrap","view2"].forEach(id=>ro.observe($(id)));
+
+function drawMeter(ctx,W,level){
+  const mw=Math.min(200,W*0.3), mx=W-mw-14, my=14;
+  ctx.font="11px "+MONO; ctx.fillStyle="#9db0c6"; ctx.textAlign="right"; ctx.textBaseline="middle"; ctx.fillText("MIC",mx-6,my+6);
+  ctx.fillStyle="#06121f"; ctx.fillRect(mx,my,mw,12); ctx.strokeStyle="#24405f"; ctx.lineWidth=1; ctx.strokeRect(mx+.5,my+.5,mw-1,11);
+  const g=ctx.createLinearGradient(mx,0,mx+mw,0); g.addColorStop(0,"#7FD4A8"); g.addColorStop(.7,"#E8B23A"); g.addColorStop(1,"#ef6f6f");
+  ctx.fillStyle=g; ctx.fillRect(mx+1,my+1,(mw-2)*Math.min(1,Math.sqrt(level)),10);
+}
+const water=a=>"rgba(59,130,205,"+a+")";
+
+/* ---------------- PART 1 ---------------- */
+let L=5, cont=false, strikeAt=-1e9;
+const slider=$("slider");
+function setL(x){ L=Math.max(2,Math.min(S.p1.len-5,Math.round(x*100)/100)); slider.value=L; if(teacherIn) renderKey(); }
+slider.addEventListener("input",()=>setL(+slider.value));
+document.querySelectorAll(".waterbtns button").forEach(b=>{
+  const st=+b.dataset.step; let t1=null,t2=null; const stop=()=>{clearTimeout(t1);clearInterval(t2);};
+  b.addEventListener("pointerdown",e=>{e.preventDefault();setL(L+st);stop();t1=setTimeout(()=>{t2=setInterval(()=>setL(L+st),Math.abs(st)<0.5?60:110);},380);});
+  ["pointerup","pointerleave","pointercancel"].forEach(ev=>b.addEventListener(ev,stop));
+});
+$("btnStrike").onclick=()=>{ audio(); syncOsc(); strikeAt=performance.now()/1000; };
+$("btnCont").onclick=()=>{ audio(); syncOsc(); cont=!cont; if(!cont) strikeAt=-1e9; updateContBtn(); };
+function updateContBtn(){ $("btnCont").textContent=t(cont?"contOn":"contOff"); $("btnCont").classList.toggle("on",cont); }
+
+function draw1(level,R,time){
+  const ctx=c1, W=W1, H=H1; ctx.clearRect(0,0,W,H);
+  const top=78, bp=30, len=S.p1.len, ppc=(H-top-bp)/len, cx=Math.max(130,W*0.36);
+  const tw=Math.max(26,Math.min(56,S.p1.r*2*ppc+18)), yTop=top, yBot=top+len*ppc, yw=top+L*ppc;
+  // ruler
+  const rx=cx-tw/2-46;
+  ctx.fillStyle="#16304d"; ctx.fillRect(rx,yTop-4,34,yBot-yTop+8);
+  ctx.strokeStyle="#cfdbe8"; ctx.fillStyle="#cfdbe8"; ctx.font="10px "+MONO; ctx.textAlign="right"; ctx.textBaseline="middle"; ctx.lineWidth=1;
+  for(let c=0;c<=len;c++){ const y=yTop+c*ppc; let tl=5;
+    if(c%10===0){ tl=14; ctx.fillText(String(c),rx+18,y); } else if(c%5===0) tl=9; else if(ppc<2.5) continue;
+    ctx.beginPath(); ctx.moveTo(rx+34-tl,y+.5); ctx.lineTo(rx+34,y+.5); ctx.stroke(); }
+  ctx.textAlign="center"; ctx.fillStyle="#9db0c6"; ctx.fillText("cm",rx+17,yTop-14);
+  // reservoir + hose
+  const resW=Math.max(40,tw*1.5), resH=Math.min(150,H*0.28), resX=Math.min(W-resW-30,cx+tw/2+90), resTop=yw-resH*0.35, resBot=resTop+resH;
+  ctx.lineCap="round"; ctx.strokeStyle="#4f6a88"; ctx.lineWidth=7;
+  ctx.beginPath(); ctx.moveTo(cx,yBot); ctx.bezierCurveTo(cx,yBot+30,resX+resW/2,resBot+40,resX+resW/2,resBot); ctx.stroke();
+  ctx.strokeStyle=water(.9); ctx.lineWidth=3; ctx.stroke(); ctx.lineCap="butt";
+  ctx.fillStyle=water(.75); ctx.fillRect(resX,yw,resW,resBot-yw);
+  ctx.strokeStyle="rgba(215,230,250,.6)"; ctx.lineWidth=2; ctx.strokeRect(resX,resTop,resW,resH);
+  ctx.strokeStyle="#33506f"; ctx.lineWidth=4; ctx.beginPath(); ctx.moveTo(resX+resW+10,40); ctx.lineTo(resX+resW+10,H-8); ctx.stroke();
+  ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(resX+resW,resTop+resH*.5); ctx.lineTo(resX+resW+10,resTop+resH*.5); ctx.stroke();
+  // water in tube
+  ctx.fillStyle=water(.85); ctx.beginPath(); ctx.moveTo(cx-tw/2,yw-3); ctx.quadraticCurveTo(cx,yw+3,cx+tw/2,yw-3);
+  ctx.lineTo(cx+tw/2,yBot); ctx.lineTo(cx-tw/2,yBot); ctx.closePath(); ctx.fill();
+  // standing wave
+  if(S.p1.wave){
+    const lam=lam1(), amp=(tw/2-4)*Math.min(1,R)*Math.max(0.15,level), c=Math.cos(time*2*Math.PI*1.2);
+    ctx.lineWidth=2; ctx.strokeStyle="rgba(232,178,58,"+(0.25+0.7*Math.min(1,R*level))+")";
+    for(const sg of [1,-1]){ ctx.beginPath();
+      for(let y=yTop;y<=yw;y+=2){ const d=(yw-y)/ppc, x=cx+sg*amp*Math.sin(2*Math.PI*d/lam)*c; y===yTop?ctx.moveTo(x,y):ctx.lineTo(x,y); }
+      ctx.stroke(); }
+  }
+  // glass tube
+  const gr=ctx.createLinearGradient(cx-tw/2,0,cx+tw/2,0);
+  gr.addColorStop(0,"rgba(190,215,245,.22)"); gr.addColorStop(.3,"rgba(255,255,255,.04)"); gr.addColorStop(1,"rgba(190,215,245,.16)");
+  ctx.fillStyle=gr; ctx.fillRect(cx-tw/2,yTop,tw,yBot-yTop);
+  ctx.strokeStyle="rgba(215,230,250,.8)"; ctx.lineWidth=2;
+  ctx.beginPath(); ctx.moveTo(cx-tw/2,yTop); ctx.lineTo(cx-tw/2,yBot); ctx.lineTo(cx+tw/2,yBot); ctx.lineTo(cx+tw/2,yTop); ctx.stroke();
+  // water level marker
+  ctx.strokeStyle="rgba(127,212,168,.9)"; ctx.setLineDash([4,3]); ctx.lineWidth=1;
+  ctx.beginPath(); ctx.moveTo(rx+34,yw+.5); ctx.lineTo(cx-tw/2,yw+.5); ctx.stroke(); ctx.setLineDash([]);
+  // tuning fork
+  const fy=yTop-34, vib=Math.min(3,3*level)*Math.sin(time*2*Math.PI*18), pL=cx-tw/2-10, pR=cx+tw/2+14;
+  ctx.strokeStyle="#d7dde6"; ctx.lineWidth=5; ctx.lineCap="round";
+  ctx.beginPath(); ctx.moveTo(pR,fy-8+vib); ctx.lineTo(pL,fy-8+vib); ctx.arc(pL,fy,8,-Math.PI/2,Math.PI/2,true); ctx.lineTo(pR,fy+8-vib); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(pL-8,fy); ctx.lineTo(pL-60,fy); ctx.stroke(); ctx.lineCap="butt";
+  ctx.font="bold 11px "+MONO; ctx.textAlign="center"; ctx.fillStyle="#E8B23A";
+  ctx.fillText(S.p1.showF?(Math.round(S.p1.f*10)/10)+" Hz":"? Hz",pL-36,fy-13);
+  // sound arcs
+  if(level>0.02){ const k=Math.min(1,level*(0.3+R));
+    for(let i=0;i<3;i++){ const rr=((time*60+i*14)%42)+6;
+      ctx.strokeStyle="rgba(127,212,168,"+(k*(1-rr/48))+")"; ctx.lineWidth=2;
+      ctx.beginPath(); ctx.arc(cx,fy-6,rr+tw/2,Math.PI*1.15,Math.PI*1.85); ctx.stroke(); } }
+  if(S.p1.meter) drawMeter(ctx,W,level*R);
+}
+function drawMag(){
+  const c=mc; c.clearRect(0,0,MW,MH);
+  const span=3.2, ppc=MH/span, y0=L-span/2, Y=v=>(v-y0)*ppc;
+  const rulerX=40, tubeL=rulerX+100, tubeR=Math.min(MW-20,tubeL+280);
+  c.fillStyle="#e9e2c9"; c.fillRect(rulerX,0,70,MH);
+  c.strokeStyle="#222"; c.fillStyle="#222"; c.font="bold 13px "+MONO; c.textAlign="left"; c.textBaseline="middle";
+  for(let mm=Math.floor(y0*10)-1; mm<=Math.ceil((y0+span)*10)+1; mm++){
+    if(mm<0) continue; const y=Y(mm/10); let tl=10; c.lineWidth=1;
+    if(mm%10===0){ tl=30; c.lineWidth=1.6; c.fillText(String(mm/10),rulerX+6,y); } else if(mm%5===0) tl=20;
+    c.beginPath(); c.moveTo(rulerX+70-tl,y+.5); c.lineTo(rulerX+70,y+.5); c.stroke(); }
+  c.fillStyle="rgba(190,215,245,.06)"; c.fillRect(tubeL,0,tubeR-tubeL,MH);
+  const yL=Y(L), yWall=Y(L-0.18);
+  c.fillStyle=water(.85); c.beginPath(); c.moveTo(tubeL,yWall); c.quadraticCurveTo((tubeL+tubeR)/2,2*yL-yWall,tubeR,yWall);
+  c.lineTo(tubeR,MH); c.lineTo(tubeL,MH); c.closePath(); c.fill();
+  c.strokeStyle="rgba(180,220,255,.95)"; c.lineWidth=1.5;
+  c.beginPath(); c.moveTo(tubeL,yWall); c.quadraticCurveTo((tubeL+tubeR)/2,2*yL-yWall,tubeR,yWall); c.stroke();
+  c.strokeStyle="rgba(215,230,250,.8)"; c.lineWidth=2; c.beginPath(); c.moveTo(tubeL,0); c.lineTo(tubeL,MH); c.moveTo(tubeR,0); c.lineTo(tubeR,MH); c.stroke();
+  c.strokeStyle="rgba(255,255,255,.14)"; c.setLineDash([3,4]); c.beginPath(); c.moveTo(rulerX+70,yL); c.lineTo(tubeL,yL); c.stroke(); c.setLineDash([]);
+}
+
+/* ---------------- PART 2 ---------------- */
+let cur=0, f2=200, step=10, on=false, env2=0;
+function buildP2Chips(){
+  $("pipeChips").innerHTML=PIPES.map((p,i)=>`<button class="chip${i===cur?" on":""}" data-i="${i}">${lang==="th"?"ท่อ":"Pipe"} ${p}</button>`).join("");
+  $("pipeChips").querySelectorAll(".chip").forEach(b=>b.onclick=()=>{cur=+b.dataset.i;buildP2Chips();});
+  $("stepChips").innerHTML=[100,10,1,0.1].map(s=>`<button class="chip step${s===step?" on":""}" data-s="${s}">±${s}</button>`).join("");
+  $("stepChips").querySelectorAll(".chip").forEach(b=>b.onclick=()=>{step=+b.dataset.s;buildP2Chips();});
+}
+function setF(x){ f2=Math.max(20,Math.min(2500,Math.round(x*10)/10)); $("lcd").innerHTML=f2.toFixed(1).padStart(6,"0")+"<small>Hz</small>"; if(part===2) syncOsc(); }
+document.querySelectorAll(".arrow").forEach(b=>{
+  const d=+b.dataset.dir; let t1=null,t2=null; const stop=()=>{clearTimeout(t1);clearInterval(t2);};
+  b.addEventListener("pointerdown",e=>{e.preventDefault();setF(f2+d*step);stop();t1=setTimeout(()=>{t2=setInterval(()=>setF(f2+d*step),step>=10?140:70);},380);});
+  ["pointerup","pointerleave","pointercancel"].forEach(ev=>b.addEventListener(ev,stop));
+});
+function soundBtn(){ $("btnSound").innerHTML=(on?"■ ":"▶ ")+t(on?"soundOn":"soundOff"); $("btnSound").className=on?"go":""; }
+$("btnSound").onclick=()=>{ audio(); syncOsc(); on=!on; soundBtn(); };
+
+function draw2(time,R,level){
+  const ctx=c2, W=W2, H=H2; ctx.clearRect(0,0,W,H);
+  const lens=S.p2.lens, padL=Math.max(96,W*0.11), padR=Math.max(80,W*0.08), top=44, bot=14;
+  const ppc=(W-padL-padR)/(Math.max(...lens)+3), rowH=(H-top-bot)/5;
+  if(S.p2.meter) drawMeter(ctx,W,level);
+  for(let i=0;i<5;i++){
+    const sel=i===cur, yc=top+rowH*(i+.5), th=Math.min(36,rowH*0.42), x0=padL, len=lens[i]*ppc, x1=x0+len;
+    ctx.globalAlpha=sel?1:0.3;
+    ctx.font="bold 15px "+MONO; ctx.fillStyle=sel?"#7FD4A8":"#9db0c6"; ctx.textAlign="center"; ctx.textBaseline="middle"; ctx.fillText(PIPES[i],18,yc);
+    if(sel && S.p2.wave && level>0.01){
+      const k=2*Math.PI*f2/(vSound()*100), e=e2(i), amp=(th/2-3)*Math.min(1,R)*Math.min(1,level*1.2), c=Math.cos(time*2*Math.PI*1.1);
+      ctx.lineWidth=2; ctx.strokeStyle="rgba(232,178,58,"+(0.3+0.7*Math.min(1,R))+")";
+      for(const sg of [1,-1]){ ctx.beginPath();
+        for(let x=x0;x<=x1;x+=2){ const xc=(x-x0)/ppc, y=yc+sg*amp*Math.cos(k*(xc+e))*c; x===x0?ctx.moveTo(x,y):ctx.lineTo(x,y); }
+        ctx.stroke(); }
+    }
+    const gr=ctx.createLinearGradient(0,yc-th/2,0,yc+th/2);
+    gr.addColorStop(0,"rgba(190,215,245,.22)"); gr.addColorStop(.3,"rgba(255,255,255,.04)"); gr.addColorStop(1,"rgba(190,215,245,.16)");
+    ctx.fillStyle=gr; ctx.fillRect(x0,yc-th/2,len,th);
+    ctx.strokeStyle="rgba(215,230,250,.8)"; ctx.lineWidth=2;
+    ctx.beginPath(); ctx.moveTo(x0,yc-th/2); ctx.lineTo(x1,yc-th/2); ctx.moveTo(x0,yc+th/2); ctx.lineTo(x1,yc+th/2); ctx.stroke();
+    ctx.lineWidth=1; ctx.strokeStyle="rgba(215,230,250,.45)";
+    for(const x of [x0,x1]){ ctx.beginPath(); ctx.ellipse(x,yc,3,th/2,0,0,Math.PI*2); ctx.stroke(); }
+    if(sel){
+      const sx=x0-14;
+      ctx.fillStyle="#2a3f5a"; ctx.fillRect(sx-30,yc-th*0.45,14,th*0.9);
+      ctx.fillStyle="#3c5878"; ctx.beginPath(); ctx.moveTo(sx-16,yc-th*0.3); ctx.lineTo(sx-2,yc-th*0.62); ctx.lineTo(sx-2,yc+th*0.62); ctx.lineTo(sx-16,yc+th*0.3); ctx.closePath(); ctx.fill();
+      ctx.strokeStyle="#9db0c6"; ctx.lineWidth=1; ctx.stroke();
+      ctx.strokeStyle="#5b7695"; ctx.lineWidth=2; ctx.beginPath(); ctx.moveTo(sx-30,yc); ctx.lineTo(sx-50,yc); ctx.lineTo(sx-50,yc+rowH*0.45); ctx.stroke();
+      const mx=x1+16;
+      ctx.fillStyle="#9db0c6"; ctx.beginPath(); ctx.arc(mx+5,yc,6,0,Math.PI*2); ctx.fill();
+      ctx.strokeStyle="#9db0c6"; ctx.lineWidth=3; ctx.beginPath(); ctx.moveTo(mx+11,yc); ctx.lineTo(mx+34,yc); ctx.stroke();
+      if(level>0.02){ for(let j=0;j<3;j++){ const rr=((time*45+j*11)%33)+4, a=Math.min(1,level*(0.25+R))*(1-rr/37);
+        ctx.strokeStyle="rgba(127,212,168,"+a+")"; ctx.lineWidth=1.5; ctx.beginPath(); ctx.arc(x1,yc,rr+th/2,-0.6,0.6); ctx.stroke(); } }
+      const ry=yc+th/2+5, rh=Math.min(16,rowH*0.22), rl=(lens[i]+2)*ppc;
+      ctx.fillStyle="#e9e2c9"; ctx.fillRect(x0,ry,rl,rh);
+      ctx.strokeStyle="#222"; ctx.fillStyle="#222"; ctx.font="9px "+MONO; ctx.textAlign="left"; ctx.textBaseline="bottom";
+      for(let c=0;c<=lens[i]+2;c++){
+        const x=Math.round(x0+c*ppc)+.5; let tl=rh*0.3;
+        if(c%10===0){ tl=rh*0.8; if(rh>=12) ctx.fillText(String(c),x+2,ry+rh); } else if(c%5===0) tl=rh*0.5; else if(ppc<4) continue;
+        ctx.lineWidth=1; ctx.beginPath(); ctx.moveTo(x,ry); ctx.lineTo(x,ry+tl); ctx.stroke();
+      }
+    }
+    ctx.globalAlpha=1;
+  }
+}
+
+/* ================= main loop ================= */
+function frame(now){
+  const time=now/1000; let g=0;
+  const flick=()=>1+0.06*Math.sin(time*2.1+ph[0])+0.04*Math.sin(time*5.3+ph[1])+0.03*Math.sin(time*12.7+ph[2]);
+  if(part===1){
+    let env=cont?1:Math.max(0,Math.exp(-(time-strikeAt)/2.6)); if(env<0.004) env=0;
+    let R=res1(L); if(S.p1.noise) R*=flick();
+    g=Math.min(1,R)*env;
+    if(W1>0) draw1(env,R,time); if(MW>0) drawMag();
+  }else{
+    env2+=((on?1:0)-env2)*0.15;
+    let R=res2(cur,f2); if(S.p2.noise) R*=flick();
+    g=Math.min(1,R)*env2;
+    if(W2>0) draw2(time,R,env2*R);
+  }
+  if(gain) gain.gain.setTargetAtTime(g*volume*volume,ac.currentTime,0.03);
+  requestAnimationFrame(frame);
+}
+
+/* ================= floating water panel ================= */
+const wp=$("waterPanel"); let wpPlaced=false;
+function clampPanel(x,y){ x=Math.max(4,Math.min(innerWidth-wp.offsetWidth-4,x)); y=Math.max(4,Math.min(innerHeight-wp.offsetHeight-4,y)); wp.style.left=x+"px"; wp.style.top=y+"px"; }
+function defaultPanelPos(){ const r=$("view1").getBoundingClientRect();
+  clampPanel(Math.min(r.right,innerWidth)-wp.offsetWidth-12, Math.max(70,Math.min(innerHeight,r.bottom)-wp.offsetHeight-12));
+  wp.style.visibility="visible"; wpPlaced=true; }
+(function(){
+  let dx=0,dy=0,drag=false; const h=$("wpHead");
+  h.addEventListener("pointerdown",e=>{ if(e.target.id==="wpMin") return; drag=true; h.setPointerCapture(e.pointerId);
+    const r=wp.getBoundingClientRect(); dx=e.clientX-r.left; dy=e.clientY-r.top; e.preventDefault(); });
+  h.addEventListener("pointermove",e=>{ if(drag) clampPanel(e.clientX-dx,e.clientY-dy); });
+  ["pointerup","pointercancel"].forEach(ev=>h.addEventListener(ev,()=>drag=false));
+  $("wpMin").onclick=()=>{ wp.classList.toggle("mini"); $("wpMin").textContent=wp.classList.contains("mini")?"+":"–"; const r=wp.getBoundingClientRect(); clampPanel(r.left,r.top); };
+  addEventListener("resize",()=>{ const r=wp.getBoundingClientRect(); clampPanel(r.left,r.top); });
+})();
+
+/* ================= data tables ================= */
+const ST1="resoTubeP1_v2", ST2="resoTubeP2_v2";
+const ids1=["d1a","d1b","d2a","d2b","d3a","d3b","a1Lam","a1V","a1E","a1Err"];
+const ids2=[].concat(...PIPES.map((p,i)=>["L","f1","f2","v"].map(c=>"q"+c+i)));
+function load(k){ try{ return JSON.parse(localStorage.getItem(k)||"null"); }catch(e){ return null; } }
+function save(k,ids){ try{ const o={}; ids.forEach(i=>o[i]=$(i).value); localStorage.setItem(k,JSON.stringify(o)); }catch(e){} }
+function calcAvg(){ for(let n=1;n<=3;n++){ const a=[+$("d"+n+"a").value,+$("d"+n+"b").value].filter((x,j)=>[$("d"+n+"a"),$("d"+n+"b")][j].value!=="" && !isNaN(x));
+  $("avg"+n).textContent=a.length?(a.reduce((s,x)=>s+x,0)/a.length).toFixed(2):"–"; } }
+function buildTables(){
+  $("tbody1").innerHTML=[1,2,3].map(n=>`<tr><td class="p">L<sub>${n}</sub></td><td><input type="number" step="any" id="d${n}a"></td><td><input type="number" step="any" id="d${n}b"></td><td class="avg" id="avg${n}">–</td></tr>`).join("");
+  $("tbody2").innerHTML=PIPES.map((p,i)=>`<tr><td class="p">${p}</td>${["L","f1","f2","v"].map(c=>`<td><input type="number" step="any" id="q${c}${i}"></td>`).join("")}</tr>`).join("");
+  const d1=load(ST1), d2=load(ST2);
+  if(d1) ids1.forEach(i=>{ if(d1[i]!=null) $(i).value=d1[i]; });
+  if(d2) ids2.forEach(i=>{ if(d2[i]!=null) $(i).value=d2[i]; });
+  ids1.forEach(i=>$(i).addEventListener("input",()=>{ calcAvg(); save(ST1,ids1); }));
+  ids2.forEach(i=>$(i).addEventListener("input",()=>save(ST2,ids2)));
+  calcAvg();
+}
+function csv(rows,name){ const s="﻿"+rows.map(r=>r.map(x=>'"'+String(x??"").replace(/"/g,'""')+'"').join(",")).join("\n");
+  const a=document.createElement("a"); a.href=URL.createObjectURL(new Blob([s],{type:"text/csv"})); a.download=name; document.body.appendChild(a); a.click(); a.remove(); }
+$("btnCSV1").onclick=()=>{ const r=[["Resonance Tube Lab - Part 1 (tuning fork)"],["Fork frequency (Hz)",S.p1.showF?S.p1.f:"?"],["Room temperature (C)",S.T],[],["","Trial 1 L (cm)","Trial 2 L (cm)","Average (cm)"]];
+  for(let n=1;n<=3;n++) r.push(["L"+n,$("d"+n+"a").value,$("d"+n+"b").value,$("avg"+n).textContent]);
+  r.push([],["Wavelength (cm)",$("a1Lam").value],["Speed of sound (m/s)",$("a1V").value],["End correction (cm)",$("a1E").value],["% difference",$("a1Err").value]);
+  csv(r,"resonance_part1.csv"); };
+$("btnCSV2").onclick=()=>{ const r=[["Resonance Tube Lab - Part 2 (open pipes)"],["Room temperature (C)",S.T],[],["Pipe","L (cm)","f1 (Hz)","f2 (Hz)","v (m/s)"]];
+  PIPES.forEach((p,i)=>r.push([p,$("qL"+i).value,$("qf1"+i).value,$("qf2"+i).value,$("qv"+i).value])); csv(r,"resonance_part2.csv"); };
+$("btnClear1").onclick=()=>{ if(!confirm(t("clearAsk"))) return; ids1.forEach(i=>$(i).value=""); calcAvg(); save(ST1,ids1); };
+$("btnClear2").onclick=()=>{ if(!confirm(t("clearAsk"))) return; ids2.forEach(i=>$(i).value=""); save(ST2,ids2); };
+
+/* ================= language ================= */
+function applyLang(){
+  document.documentElement.lang=lang;
+  document.querySelectorAll("[data-i18n]").forEach(el=>el.textContent=t(el.dataset.i18n));
+  $("btnLang").textContent=lang==="en"?"ไทย":"EN";
+  $("steps1").innerHTML=t("steps1").map(s=>"<li>"+s+"</li>").join("");
+  $("steps2").innerHTML=t("steps2").map(s=>"<li>"+s+"</li>").join("");
+  $("credit").textContent=t("credit"); $("sub").textContent=t("sub"+part);
+  buildPartChips(); buildP2Chips(); updateContBtn(); soundBtn(); if(teacherIn){ buildPartsSel(); renderKey(); }
+}
+$("btnLang").onclick=()=>{ lang=lang==="en"?"th":"en"; applyLang(); };
+function applySettings(){
+  slider.max=S.p1.len-5; setL(L);
+  $("fLabel").textContent=S.p1.showF?(Math.round(S.p1.f*10)/10)+" Hz":"? Hz";
+  $("tLabel1").textContent=$("tLabel2").textContent=S.T.toFixed(1)+" °C";
+  syncOsc();
+}
+
+/* ================= teacher ================= */
+$("lenInputs").innerHTML=PIPES.map((p,i)=>`<div><label class="l mono">${p}</label><input type="number" step="0.1" id="s2L${i}"></div>`).join("");
+let formParts=0;
+function buildPartsSel(){
+  $("sParts").innerHTML=[[0,t("both")],[1,"1"],[2,"2"]].map(([v,l])=>`<button class="chip${v===formParts?" on":""}" data-v="${v}">${l}</button>`).join("");
+  $("sParts").querySelectorAll(".chip").forEach(b=>b.onclick=()=>{ formParts=+b.dataset.v; buildPartsSel(); });
+}
+$("btnTeacher").onclick=()=>{ $("modal").classList.add("show"); if(!teacherIn){ $("pw").value=""; $("pwMsg").textContent=""; setTimeout(()=>$("pw").focus(),50);} };
+$("btnClose").onclick=()=>$("modal").classList.remove("show");
+function login(){
+  if(sha256(norm($("pw").value))===pwHash()){ teacherIn=true; $("pwStage").style.display="none"; $("tStage").style.display=""; fillForm(); renderKey(); }
+  else $("pwMsg").textContent=t("wrong");
+}
+$("btnLogin").onclick=login; $("pw").onkeydown=e=>{ if(e.key==="Enter") login(); };
+function fillForm(){
+  formParts=S.parts; buildPartsSel(); $("sTemp").value=S.T;
+  const opts=[...$("s1Fork").options].map(o=>o.value);
+  if(opts.includes(String(S.p1.f))){ $("s1Fork").value=String(S.p1.f); $("s1Custom").value=""; } else { $("s1Fork").value="custom"; $("s1Custom").value=S.p1.f; }
+  $("s1Len").value=S.p1.len; $("s1Rad").value=S.p1.r;
+  $("s1ShowF").checked=S.p1.showF; $("s1Meter").checked=S.p1.meter; $("s1Wave").checked=S.p1.wave; $("s1Noise").checked=S.p1.noise;
+  S.p2.lens.forEach((l,i)=>$("s2L"+i).value=l); $("s2Rad").value=S.p2.r;
+  $("s2Meter").checked=S.p2.meter; $("s2Wave").checked=S.p2.wave; $("s2Noise").checked=S.p2.noise;
+}
+const num=(id,lo,hi,d)=>{ const x=parseFloat($(id).value); return x>=lo&&x<=hi?x:d; };
+const rnd=a=>Math.round((Math.random()*2-1)*a*100)/100;
+function readForm(fresh){
+  let f=$("s1Fork").value==="custom"?parseFloat($("s1Custom").value):parseFloat($("s1Fork").value); if(!(f>=100&&f<=2000)) f=S.p1.f;
+  const n1=$("s1Noise").checked, n2=$("s2Noise").checked;
+  return {T:num("sTemp",-10,50,S.T), parts:formParts,
+    p1:{f,len:num("s1Len",40,150,S.p1.len),r:num("s1Rad",0.5,4,S.p1.r),showF:$("s1ShowF").checked,meter:$("s1Meter").checked,wave:$("s1Wave").checked,noise:n1,
+        ne:n1?((fresh||!S.p1.noise)?rnd(0.45):S.p1.ne):0},
+    p2:{lens:S.p2.lens.map((l,i)=>num("s2L"+i,5,150,l)),r:num("s2Rad",0.3,5,S.p2.r),meter:$("s2Meter").checked,wave:$("s2Wave").checked,noise:n2,
+        ne:n2?((fresh||!S.p2.noise)?PIPES.map(()=>rnd(0.3)):S.p2.ne):[0,0,0,0,0]}};
+}
+$("btnApply").onclick=()=>{ S=readForm(false); applySettings(); fillForm(); setPart(S.parts||part); renderKey(); toast(t("applied")); };
+$("btnLink").onclick=async()=>{
+  const n=readForm(true);
+  const bad=location.origin==="null"||!/^https?:$/.test(location.protocol);
+  const url=(bad?"https://YOUR-SITE.github.io/resonance-tube-lab.html":location.origin+location.pathname)+"?lab="+enc(n);
+  $("linkBox").style.display="block"; $("linkBox").textContent=url;
+  if(bad){ $("linkMsg").style.color="var(--amber)"; $("linkMsg").textContent=t("linkWarn"); return; }
+  try{ await navigator.clipboard.writeText(url); $("linkMsg").style.color="var(--green)"; $("linkMsg").textContent=t("linkOk"); }catch(e){ $("linkMsg").textContent=""; }
+};
+function renderKey(){
+  if(!teacherIn) return;
+  const v=vSound(), lam=lam1(), e=e1();
+  let h=`v = <b>${v.toFixed(1)} m/s</b><br><span style="color:var(--green)">${t("p1name")}</span><br>λ = ${lam.toFixed(2)} cm · λ/4 = ${(lam/4).toFixed(2)} cm · e = ${e.toFixed(2)} cm<br>`;
+  for(let n=1;n<=3;n++){ const Ln=(2*n-1)*lam/4-e; h+=`L${n} = ${Ln<S.p1.len-5?Ln.toFixed(2)+" cm":t("beyond")}<br>`; }
+  h+=`<span style="color:var(--muted)">L (${t("now")}) = ${L.toFixed(2)} cm</span><br><br><span style="color:var(--green)">${t("p2name")}</span> · e = ${(0.6*S.p2.r).toFixed(2)} cm${S.p2.noise?" ±":""}
+  <table style="margin-top:4px"><tr><th></th><th>L</th><th>L_eff</th><th>f₁</th><th>f₂</th><th>f₃</th></tr>`;
+  PIPES.forEach((p,i)=>{ const c=n=>{ const x=fn(i,n); return x<=2500?x.toFixed(1):"—"; };
+    h+=`<tr><td class="p">${p}</td><td>${S.p2.lens[i]}</td><td>${Leff(i).toFixed(2)}</td><td>${c(1)}</td><td>${c(2)}</td><td>${c(3)}</td></tr>`; });
+  $("keyBox").innerHTML=h+"</table>";
+}
+const adminOK=()=>sha256($("adEmail").value.trim().toLowerCase()+"|"+$("adPw").value)===ADMIN;
+$("btnChPw").onclick=()=>{
+  const np=norm($("newPw").value);
+  if(!adminOK()||!np){ $("chMsg").style.color="var(--bad)"; $("chMsg").textContent=t("bad"); return; }
+  try{ localStorage.setItem(PW_KEY,sha256(np)); }catch(e){}
+  $("chMsg").style.color="var(--green)"; $("chMsg").textContent=t("saved"); $("adPw").value=""; $("newPw").value="";
+};
+$("btnResetPw").onclick=()=>{
+  if(!adminOK()){ $("chMsg").style.color="var(--bad)"; $("chMsg").textContent=t("bad"); return; }
+  try{ localStorage.removeItem(PW_KEY); }catch(e){}
+  $("chMsg").style.color="var(--green)"; $("chMsg").textContent=t("reset"); $("adPw").value="";
+};
+function toast(m){ const el=$("toast"); el.textContent=m; el.style.display="block"; clearTimeout(toast.t); toast.t=setTimeout(()=>el.style.display="none",1500); }
+
+/* ================= start ================= */
+const q=new URLSearchParams(location.search).get("lab");
+if(q){ const c=dec(q); if(c&&c.p1&&c.p2){
+  S=clone(DEF); S.T=c.T??S.T; S.parts=c.parts??0; Object.assign(S.p1,c.p1); Object.assign(S.p2,c.p2);
+  $("lockBadge").style.display="inline-block"; } }
+buildTables(); setF(200); applySettings(); applyLang(); setPart(S.parts||1); requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
